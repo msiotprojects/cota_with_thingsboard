@@ -436,13 +436,17 @@ class OverTheAirUpdate(ThingsBoard):
                 self.temp_firmware_download_folder, keep_files=[], keep_folders=[])
 
 
-def get_thingsboard_settings() -> dict:
+def get_misc_settings() -> dict:
     settings = {
         "wifi_ssid": os.getenv("WIFI_SSID"),
         "wifi_password": os.getenv("WIFI_PASSWORD"),
-        "thingsboard_url": os.getenv("THINGSBOARD_URL"),
-        "thingsboard_port": os.getenv("THINGSBOARD_PORT"),
-        "thingsboard_device_token": os.getenv("THINGSBOARD_DEVICE_TOKEN")
+            # get  GETHUB repo/access from settings.toml
+        "gethub_repo": os.getenv("GETHUB_REPO")
+        "gethub_access_token": os.getenv("GETHUB_ACCESS_TOKEN")
+    
+        # "thingsboard_url": os.getenv("THINGSBOARD_URL"),
+        # "thingsboard_port": os.getenv("THINGSBOARD_PORT"),
+        # "thingsboard_device_token": os.getenv("THINGSBOARD_DEVICE_TOKEN")
     }
 
     return settings

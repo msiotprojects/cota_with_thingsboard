@@ -9,10 +9,14 @@
 WIFI_SSID = "DEADEND2"
 WIFI_PASSWORD = "DEADBEEF"
 
-# ThingsBoard not used anymore - here for ccontinuity
+# ThingsBoard not used anymore - here for continuity
 #THINGSBOARD_URL = "thingsboard_url"
 #THINGSBOARD_PORT = "thingsboard_port"
 #THINGSBOARD_DEVICE_TOKEN = "thingsboard_device_token"
+
+# GetHub repo and and special access for this project
+GETHUB_REPO = "https://github.com/msiotprojects/cota_with_thingsboard"
+GETHUB_ACCESS_TOKEN = ""
 
 # We might replace Thingsboard with Adafruit.io
 # if we find that to be useful later (perhaps for logging),

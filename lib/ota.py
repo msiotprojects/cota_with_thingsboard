@@ -440,9 +440,11 @@ def get_misc_settings() -> dict:
     settings = {
         "wifi_ssid": os.getenv("WIFI_SSID"),
         "wifi_password": os.getenv("WIFI_PASSWORD"),
+        
             # get  GETHUB repo/access from settings.toml
-        "gethub_repo": os.getenv("GETHUB_REPO")
-        "gethub_access_token": os.getenv("GETHUB_ACCESS_TOKEN")
+        "gethub_repo": os.getenv("GETHUB_REPO"),
+        "gethub_access_token": os.getenv("GETHUB_ACCESS_TOKEN")  ,  # or None by default
+        
     
         # "thingsboard_url": os.getenv("THINGSBOARD_URL"),
         # "thingsboard_port": os.getenv("THINGSBOARD_PORT"),

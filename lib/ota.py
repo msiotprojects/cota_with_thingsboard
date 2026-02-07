@@ -62,11 +62,11 @@ class EmptyGithubRepoError(OverTheAirUpdateError):
 
 
 class ThingsBoard:
-    FW_TITLE_ATTR = "fw_title"
-    FW_VERSION_ATTR = "fw_version"
-    FW_URL_ATTR = "fw_url"
-    FW_STATE_ATTR = "fw_state"
-    FW_ERROR_ATTR = "fw_error"
+    #FW_TITLE_ATTR = "fw_title"
+    #FW_VERSION_ATTR = "fw_version"
+    #FW_URL_ATTR = "fw_url"
+    #FW_STATE_ATTR = "fw_state"
+    #FW_ERROR_ATTR = "fw_error"
     FW_UPDATE_FAILED = "FAILED"
     FW_UPDATE_DOWNLOADING = "DOWNLOADING"
     FW_UPDATE_DOWNLOADED = "DOWNLOADED"
@@ -75,10 +75,13 @@ class ThingsBoard:
     FW_UPDATE_UPDATED = "UPDATED"
     ATTRIBUTE_KEYS = [FW_TITLE_ATTR, FW_VERSION_ATTR, FW_URL_ATTR]
 
-    def __init__(self, url: str, port: int, access_token: str) -> None:
-        self.url = url
-        self.port = port
-        self.access_token = access_token
+    def __init__(self) -> None:
+        self.url = "/No/TB/URL/IS/RELEVANT/ANY/MORE"     # was url param
+        self.port = 1234    # arbitrary noise            # was port param
+        self.access_token = "NotArealAccessToken"    # was access_token param
+
+        # these are not supposed to be used, but for now we let them get computed
+        # in case some code still tries to access them
         self.tb_api_url = f"{self.url}:{self.port}/api/v1/{self.access_token}"
         self.tb_api_attributes_url = f"{self.tb_api_url}/attributes"
         self.tb_api_telemetry_url = f"{self.tb_api_url}/telemetry"
@@ -98,12 +101,14 @@ class ThingsBoard:
                     logger.error(f"Failed after {retry} retries. Last error: {e}")
         raise ConnectionError(f"Failed to establish connection to {url} after {retries} retries.")
 
-    def _generate_attribute_url(self, key_type) -> str:
+    def _generate_attribute_url(self, key_type) -> str:    # Not Relevant without Thingsboard
         keys = ','.join(self.ATTRIBUTE_KEYS)
         return f"{self.tb_api_attributes_url}?{key_type}={keys}"
 
     def _post_request(self, url: str, json: dict, retries: int = 3, delay_seconds: int = 5
                       ) -> adafruit_requests.Response:
+        print(json) ; print("Should not have been posted to TB: " + url 
+        pass    # RETURNS FROM HERE- CODE BELOW IS IGNORED
         for retry in range(1, retries + 1):
             try:
                 return requests.post(url, json=json)
@@ -116,7 +121,11 @@ class ThingsBoard:
         raise ConnectionError(f"Failed to establish connection to {url} after {retries} retries.")
 
     def update_firmware_infos_in_client_attributes(self, firmware_infos: dict) -> None:
-        self._post_request(self.tb_api_attributes_url, json=firmware_infos)
+        #was self._post_request(self.tb_api_attributes_url, json=firmware_infos)
+        
+        # need to create file on client containing firmware number (next/.version)
+        # from ota_updater.py    def _create_new_version_file(self, latest_version)
+        # self._create_new_version_file(latest_version)
 
     def _get_attributes(self, url: str) -> dict:
         response = self._get_request(url, {})

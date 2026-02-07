@@ -9,11 +9,10 @@ def conn_wifi(ssid: str, password: str):
 
 
 def main():    
-    settings = ota.get_thingsboard_settings()
+    settings = ota.get_misc_settings()
     conn_wifi(settings["wifi_ssid"], settings["wifi_password"])
-    tb_ota = ota.OverTheAirUpdate(tb_url=settings["thingsboard_url"], 
-                                  tb_port=settings["thingsboard_port"], 
-                                  tb_device_access_token=settings["thingsboard_device_token"])
+    tb_ota = ota.OverTheAirUpdate(repo_url=settings["gethub_repo"],  
+                                  repo_access_token=settings["gethub_access_token"])
 
     while True:
         try:

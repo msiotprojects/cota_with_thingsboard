@@ -109,6 +109,7 @@ class ThingsBoard:
                       ) -> adafruit_requests.Response:
         print(json) ; print("Should not have been posted to TB: " + url 
         pass    # RETURNS FROM HERE- CODE BELOW IS IGNORED
+        '''
         for retry in range(1, retries + 1):
             try:
                 return requests.post(url, json=json)
@@ -119,6 +120,7 @@ class ThingsBoard:
                 else:
                     logger.error(f"Failed after {retry} retries. Last error: {e}")
         raise ConnectionError(f"Failed to establish connection to {url} after {retries} retries.")
+        '''
 
     def update_firmware_infos_in_client_attributes(self, firmware_infos: dict) -> None:
         #was self._post_request(self.tb_api_attributes_url, json=firmware_infos)
@@ -304,13 +306,46 @@ class OverTheAirUpdate(ThingsBoard):
     keep_folders = [temp_firmware_download_folder, 'lib']
 
     def __init__(self,
-                 tb_url: str,
-                 tb_port: int,
-                 tb_device_access_token: str):
-        super().__init__(url=tb_url, port=tb_port, access_token=tb_device_access_token)
-        self._github = Github()
+                    repo_name:    str,
+                    repo_owner:   str,
+                    repo_access_token: str ):
+                
+        self._github = Github(repo_name, repo_owner, repo_access_token)
 
-    def _create_leaf_directories_for_file(self, file_path: str) -> None:
+    # copied without change (so far) from THingsBoard class
+    def is_new_firmware_available(self) -> bool:
+        client_fw_info = self._get_current_firmware_info_from_client_attributes()
+        remote_fw_info = self._get_remote_firmware_info_from_shared_attributes()
+        if self._remote_firmware_exists(remote_fw_info) and self._check_firmware_info_differences(
+                remote_fw_info, client_fw_info
+        ):
+            return True
+        return False
+
+    def get_firmware_repo_url(self) -> str | None:
+        firmware_info = self._get_remote_firmware_info_from_shared_attributes()
+        return firmware_info.get(self.FW_URL_ATTR, None)
+
+    def _remote_firmware_exists(self, remote_fw_info: dict) -> bool:
+        return all(remote_fw_info.get(attr) is not None for attr in self.ATTRIBUTE_KEYS)
+
+    def _check_firmware_info_differences(self, remote_fw_info: dict, client_fw_info: dict) -> bool:
+        """
+        Verify whether the firmware information obtained from ThingsBoard's shared and client attributes varies.
+
+        Parameters:
+            remote_fw_info (dict): Firmware information retrieved from ThingsBoard shared attributes.
+            client_fw_info (dict): Firmware information retrieved from ThingsBoard client attributes.
+
+        Returns:
+            bool: True if the firmware information differs, False otherwise.
+        """
+        client_fw_info[self.FW_VERSION_ATTR] = str(client_fw_info.get(self.FW_VERSION_ATTR, ''))
+        return (remote_fw_info.get(self.FW_TITLE_ATTR) != client_fw_info.get(self.FW_TITLE_ATTR) or
+                remote_fw_info.get(self.FW_VERSION_ATTR) != client_fw_info.get(self.FW_VERSION_ATTR))
+
+
+def _create_leaf_directories_for_file(self, file_path: str) -> None:
         """
         Create leaf directories for the specified file path if they do not already exist.
 
@@ -417,7 +452,7 @@ class OverTheAirUpdate(ThingsBoard):
             firmware_info = self._get_remote_firmware_info_from_shared_attributes()
             logger.info(f"Remote firmware info: {firmware_info}.")
 
-            current_firmware_info = self._get_current_firmware_info_from_client_attributes()
+            current_firmware_info = self.()
             logger.info(f"Current firmware info: {current_firmware_info}")
 
             self._notify_firmware_update_status(current_firmware_info, self.FW_UPDATE_DOWNLOADING)
@@ -451,10 +486,13 @@ def get_misc_settings() -> dict:
         "wifi_password": os.getenv("WIFI_PASSWORD"),
         
             # get  GETHUB repo/access from settings.toml
-        "gethub_repo": os.getenv("GETHUB_REPO"),
-        "gethub_access_token": os.getenv("GETHUB_ACCESS_TOKEN")  ,  # or None by default
+        "repo_name":  os.getenv("GETHUB_REPO_NAME"),
+        "repo_owner": os.getenv("GETHUB_REPO_OWNER"),
+        "repo_access_token": os.getenv("GETHUB_ACCESS_TOKEN")  ,  # or None by default
         
-    
+        "cloud_username":    os.getenv("AIO_USERNAME"),
+        "cloud_access_key":  os.getenv("AIO_KEY"),
+        
         # "thingsboard_url": os.getenv("THINGSBOARD_URL"),
         # "thingsboard_port": os.getenv("THINGSBOARD_PORT"),
         # "thingsboard_device_token": os.getenv("THINGSBOARD_DEVICE_TOKEN")

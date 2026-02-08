@@ -18,6 +18,8 @@ WIFI_PASSWORD = "DEADBEEF"
 GETHUB_REPO_NAME = "cota_with_thingsboard"
 GETHUB_REPO_OWNER = "msiotprojects"
 GETHUB_ACCESS_TOKEN = ""
+# Use GETHUB_DEFAULT_BRANCH only when it is not "main"
+# GETHUB_DEFAULT_BRANCH = "master"
 
 # We might replace Thingsboard with Adafruit.io
 # if we find that to be useful later (perhaps for logging),

@@ -15,14 +15,15 @@ WIFI_PASSWORD = "DEADBEEF"
 #THINGSBOARD_DEVICE_TOKEN = "thingsboard_device_token"
 
 # GetHub repo and and special access for this project
-GETHUB_REPO = "https://github.com/msiotprojects/cota_with_thingsboard"
+GETHUB_REPO_NAME = "cota_with_thingsboard"
+GETHUB_REPO_OWNER = "msiotprojects"
 GETHUB_ACCESS_TOKEN = ""
 
 # We might replace Thingsboard with Adafruit.io
 # if we find that to be useful later (perhaps for logging),
 # so we will keep this here for reference
-aio_username = "nobodyinparticular"
-aio_key = "5ae65b8fcc124a0d976ef0ba4fb55a62"
+AIO_USERNAME = "nobodyinparticular"
+AIO_KEY      = "5ae65b8fcc124a0d976ef0ba4fb55a62"
 
 
 # generator board was built with upside-down display

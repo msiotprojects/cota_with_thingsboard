@@ -11,17 +11,16 @@ def conn_wifi(ssid: str, password: str):
 def main():    
     settings = ota.get_misc_settings()
     conn_wifi(settings["wifi_ssid"], settings["wifi_password"])
-    iot_cloud = IOT_Cloud(owner=settings["cloud_username"], token=settings["cloud_access_key"])
-    tb_ota = ota.OverTheAirUpdate(IOT_Cloud, 
-                                  repo_name=settings["gethub_repo_name"],  
+    # maybe someday # iot_cloud = IOT_Cloud(owner=settings["cloud_username"], token=settings["cloud_access_key"])
+    tb_ota = ota.OverTheAirUpdate(repo_name=settings["gethub_repo_name"],  
                                   repo_owner=settings["gethub_repo_owner"],
-                                  repo_access_token=settings["gethub_access_token"])
+                                  repo_access_token=settings["gethub_access_token"] )
 
     while True:
         try:
             if tb_ota.is_new_firmware_available():
                 # New firmware is available, let's download it.
-                tb_ota.download_firmware_files()
+                tb_ota.download_firmware_files()    # and restart
             else:
                 # Add your custom code here.
                 pass

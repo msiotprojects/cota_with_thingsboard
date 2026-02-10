@@ -61,6 +61,11 @@ class EmptyGithubRepoError(OverTheAirUpdateError):
     pass
 
 
+
+######################################################################################################################
+#
+#    START OF THINGSBOARD
+#
 class ThingsBoard:
     #FW_TITLE_ATTR = "fw_title"
     #FW_VERSION_ATTR = "fw_version"
@@ -142,14 +147,7 @@ class ThingsBoard:
         json_response = self._get_attributes(self.tb_api_attributes_shared_keys_url)
         return json_response.get('shared', {})
 
-    def is_new_firmware_available(self) -> bool:
-        client_fw_info = self._get_current_firmware_info_from_client_attributes()
-        remote_fw_info = self._get_remote_firmware_info_from_shared_attributes()
-        if self._remote_firmware_exists(remote_fw_info) and self._check_firmware_info_differences(
-                remote_fw_info, client_fw_info
-        ):
-            return True
-        return False
+
 
     def get_firmware_repo_url(self) -> str | None:
         firmware_info = self._get_remote_firmware_info_from_shared_attributes()
@@ -191,17 +189,38 @@ class ThingsBoard:
         self.send_telemetry(download_progress)
 
 
+#
+#
+#    END OF THINGSBOARD
+######################################################################################################################
+
+
+
+
+
+######################################################################################################################
+#
+#    GITHUB
+
 class Github:
-    def __init__(self):
+    def __init__(self, 
+                    repo_name:  str, 
+                    repo_owner: str, 
+                    repo_access_token = None, 
+                    repo_branch="main" ):
+                    
+        self.repo_name = repo_name
+        self.repo_owner = repo_owner
+        self._github_access_token = repo_access_token
+        self.repo_branch = repo_branch
+        
         self._github_repo_url_regex_pattern = r'https?://github.com/([^/]+)/([^/]+)(?:/([^/]+))?/?$'
-        self._github_api_url = "https://api.github.com/repos/{owner}/{repo_name}/git/trees/main?recursive=1"
-        self._github_raw_url = "https://raw.githubusercontent.com/{owner}/{repo_name}/main"
-        self._github_access_token = None
+        self._github_api_url = "https://api.github.com/repos/{repo_owner}/{repo_name}/git/trees/{repo_branch}?recursive=1"
+        self._github_raw_url = "https://raw.githubusercontent.com/{repo_owner}/{repo_name}/{repo_branch}"
+        
 
-    def _is_github_repo_url_valid(self, repo_url: str):
-        return re.match(self._github_repo_url_regex_pattern, repo_url)
 
-    def _extract_github_repo_info_from_url(self, repo_url: str):
+    def _extract_github_repo_info_from_url(self, repo_url: str): # for backward compatability
         """
         Extract GitHub repository information from the given URL.
 
@@ -211,12 +230,11 @@ class Github:
         :rtype: dict
         :raises InvalidGithubRepoUrlError: If the GitHub repository URL is not valid.
         """
-        if match := self._is_github_repo_url_valid(repo_url):
-            username = match.group(1)
-            repo_name = match.group(2)
-            access_token = match.group(3) if match.group(3) else None
-            return {'username': username, 'repo_name': repo_name, 'access_token': access_token}
-        raise InvalidGithubRepoUrlError(f"GitHub repository URL is not valid: {repo_url}")
+        
+        username = match.group(1)
+        repo_name = match.group(2)
+        access_token = match.group(3) if match.group(3) else None
+        return {'username': self.repo_owner, 'repo_name': self.repo_name, 'access_token': self._github_access_token}
 
     def create_sha1_git_hash(self, data: bytes) -> str:
         """
@@ -300,19 +318,70 @@ class Github:
         return self._github_api_url.format(owner=username, repo_name=repo_name)
 
 
-class OverTheAirUpdate(ThingsBoard):
-    temp_firmware_download_folder = 'temp-firmware'
-    keep_files = ["main.py", "boot.py", "settings.toml"]
-    keep_folders = [temp_firmware_download_folder, 'lib']
+#
+#
+#    END OF GITHUB
+######################################################################################################################
 
-    def __init__(self,
-                    repo_name:    str,
-                    repo_owner:   str,
-                    repo_access_token: str ):
-                
+
+
+######################################################################################################################
+#
+#    START OVERTHEAIRUPDATE
+#
+
+class OverTheAirUpdate:
+
+
+    def __init__(self, 
+                    repo_name:  str, 
+                    repo_owner: str, 
+                    repo_access_token = None, 
+                    repo_branch="main",
+
+                    secrets_file="settings.toml",
+                    
+                    module = None,          # OTAupdater subdir in local storage for active firmware
+                    app_dir = 'app',        # OTAupdater 'main_dir' where most of app resides like {repo}/app
+                    github_src_dir=''       # OTAupdater dir if repo has extra level like {repo}/src/ src/app, src/imgs 
+                    new_version_dir='next', # firmware downloads into this dir
+                    new_version_file = "VERSION.TXT"    # version number of running code 
+                                                        # is stored locally in
+                                                        # new_version_dir/new_version_file
+                    keep_files = None,        # list of files to never remove
+                    keep_folders = None,      # list of folders to never remove (like 'lib')
+                    ):
+                    
+        self.new_version_dir =  new_version_dir  # in ota_updater code
+        self.version_filename = new_version_file
+            # version number of running code, stored in previous update
+            # stored locally in new_version_dir/version_filename
+            
+        if (keep_files == None)
+            keep_files = ["main.py", "boot.py", secrets_file]
+        if (keep_folders == None)
+            keep_folders = [self.new_version_dir, 'lib']
+            
+
+            
+
+
+        self.github_repo = github_repo.rstrip('/').replace('https://github.com/', '')
+        self.github_src_dir = '' if len(github_src_dir) < 1 else github_src_dir.rstrip('/') + '/'
+        self.repo_branch = repo_branch
+        self.repo_access_token = repo_access_token
+
+        self.app_dir = app_dir
+        
+        self.module = module.rstrip('/')    # code directory in filesystem, if in subdir
+        self.new_version_dir = new_version_dir
+        self.secrets_file = secrets_file
+        
         self._github = Github(repo_name, repo_owner, repo_access_token)
 
-    # copied without change (so far) from THingsBoard class
+#####################################################################################
+#
+# copied from ThingsBoard class
     def is_new_firmware_available(self) -> bool:
         client_fw_info = self._get_current_firmware_info_from_client_attributes()
         remote_fw_info = self._get_remote_firmware_info_from_shared_attributes()
@@ -321,6 +390,7 @@ class OverTheAirUpdate(ThingsBoard):
         ):
             return True
         return False
+
 
     def get_firmware_repo_url(self) -> str | None:
         firmware_info = self._get_remote_firmware_info_from_shared_attributes()
@@ -343,6 +413,155 @@ class OverTheAirUpdate(ThingsBoard):
         client_fw_info[self.FW_VERSION_ATTR] = str(client_fw_info.get(self.FW_VERSION_ATTR, ''))
         return (remote_fw_info.get(self.FW_TITLE_ATTR) != client_fw_info.get(self.FW_TITLE_ATTR) or
                 remote_fw_info.get(self.FW_VERSION_ATTR) != client_fw_info.get(self.FW_VERSION_ATTR))
+
+
+#
+#
+#####################################################################################
+
+
+
+
+#####################################################################################
+#
+#    From rdehuyss/micropython-ota-updater
+#
+
+def modulepath(self, path):
+        return self.module + '/' + path if self.module else path
+
+def get_version(self, directory, version_file_name='.version'):
+    if version_file_name in os.listdir(directory):
+        with open(directory + '/' + version_file_name) as f:
+            version = f.read()
+            return version
+    return '0.0'
+
+def get_latest_version(self):
+    latest_release = self.http_client.get('https://api.github.com/repos/{}/releases/latest'.format(self.gethub_repo))
+    gh_json = latest_release.json()
+    try:
+         version = gh_json['tag_name']
+    except KeyError as e:
+        raise ValueError(
+            "Release not found: \n",
+            "Please ensure release as marked as 'latest', rather than pre-release \n",
+            "github api message: \n {} \n ".format(gh_json)
+        )
+    latest_release.close()
+    return version
+
+
+def _check_for_new_version(self):
+    current_version = self.get_version(self.modulepath(self.app_dir))
+    latest_version = self.get_latest_version()
+
+    print('Checking version... ')
+    print('\tCurrent version: ', current_version)
+    print('\tLatest version: ', latest_version)
+    return (current_version, latest_version)
+
+        
+def install_update_if_available_after_boot(self, ssid, password) -> bool:
+        """This method will install the latest version if out-of-date after boot.
+        
+        This method, which should be called first thing after booting, will check if the 
+        next/.version' file exists. 
+
+        - If yes, it initializes the WIFI connection, downloads the latest version and installs it
+        - If no, the WIFI connection is not initialized as no new known version is available
+        """
+
+    if self.new_version_dir in os.listdir(self.module):
+        if '.version' in os.listdir(self.modulepath(self.new_version_dir)):
+             latest_version = self.get_version(self.modulepath(self.new_version_dir), '.version')
+             print('New update found: ', latest_version)
+            OTAUpdater._using_network(ssid, password)
+            self.install_update_if_available()
+            return True
+            
+     print('No new updates found...')
+     return False
+
+    def install_update_if_available(self) -> bool:
+        """This method will immediately install the latest version if out-of-date.
+        
+        This method expects an active internet connection and allows you to decide yourself
+        if you want to install the latest version. It is necessary to run it directly after boot 
+        (for memory reasons) and you need to restart the microcontroller if a new version is found.
+
+        Returns
+        -------
+            bool: true if a new version is available, false otherwise
+        """
+
+        (current_version, latest_version) = self._check_for_new_version()
+        if latest_version > current_version:
+            print('Updating to version {}...'.format(latest_version))
+            self._create_new_version_file(latest_version)
+            self._download_new_version(latest_version)
+            self._copy_secrets_file()
+            self._delete_old_version()
+            self._install_new_version()
+            return True
+        
+        return False
+
+        @staticmethod
+    def _using_network(ssid, password):
+        import network
+        sta_if = network.WLAN(network.STA_IF)
+        if not sta_if.isconnected():
+            print('connecting to network...')
+            sta_if.active(True)
+            sta_if.connect(ssid, password)
+            while not sta_if.isconnected():
+                pass
+        print('network config:', sta_if.ifconfig())
+
+
+    def _check_for_new_version(self):
+        current_version = self.get_version(self.modulepath(self.app_dir))
+        latest_version = self.get_latest_version()
+
+        print('Checking version... ')
+        print('\tCurrent version: ', current_version)
+        print('\tLatest version: ', latest_version)
+        return (current_version, latest_version)
+
+    def _create_new_version_file(self, latest_version):
+        self.mkdir(self.modulepath(self.new_version_dir))
+        with open(self.modulepath(self.new_version_dir + '/.version'), 'w') as versionfile:
+            versionfile.write(latest_version)
+            versionfile.close()
+
+    def get_version(self, directory, version_file_name='.version'):
+        if version_file_name in os.listdir(directory):
+            with open(directory + '/' + version_file_name) as f:
+                version = f.read()
+                return version
+        return '0.0'
+
+    def get_latest_version(self):
+        latest_release = self.http_client.get('https://api.github.com/repos/{}/releases/latest'.format(self.github_repo))
+        gh_json = latest_release.json()
+        try:
+            version = gh_json['tag_name']
+        except KeyError as e:
+            raise ValueError(
+                "Release not found: \n",
+                "Please ensure release as marked as 'latest', rather than pre-release \n",
+                "github api message: \n {} \n ".format(gh_json)
+            )
+        latest_release.close()
+        return version
+
+
+
+#
+#
+##################################################################################
+
 
 
 def _create_leaf_directories_for_file(self, file_path: str) -> None:
@@ -414,7 +633,7 @@ def _create_leaf_directories_for_file(self, file_path: str) -> None:
 
     def _update_firmware(self, directory: str, firmware_info: dict):
         self._remove_directory_contents_recursively(directory, self.keep_files, self.keep_folders)
-        self._move_folder_contents(self.temp_firmware_download_folder, directory)
+        self._move_folder_contents(self.new_version_dir, directory)
         self.update_firmware_infos_in_client_attributes(firmware_info)
 
     def _download_firmware(self, firmware_url: str) -> None:
@@ -434,7 +653,7 @@ def _create_leaf_directories_for_file(self, file_path: str) -> None:
                 raise HashMismatchError(
                     f"Hash value '{created_hash}' does not match the expected hash value '{file_hash}'.")
 
-            destination_path = f"{self.temp_firmware_download_folder}/{file_path}"
+            destination_path = f"{self.new_version_dir}/{file_path}"
             self._create_leaf_directories_for_file(destination_path)
             logger.info(f"Saving firmware to: {destination_path}")
             self._save_data_to_file(raw_file_data, destination_path)
@@ -459,7 +678,7 @@ def _create_leaf_directories_for_file(self, file_path: str) -> None:
             firmware_url = firmware_info.get(self.FW_URL_ATTR, '')
             logger.info(f"Downloading firmware from: {firmware_url}.")
             self._download_firmware(firmware_url)
-            logger.info(f"Firmware downloaded to: {self.temp_firmware_download_folder}.")
+            logger.info(f"Firmware downloaded to: {self.new_version_dir}.")
 
             for fw_progress in [self.FW_UPDATE_VERIFIED, self.FW_UPDATE_DOWNLOADED, self.FW_UPDATE_UPDATING]:
                 self._notify_firmware_update_status(current_firmware_info, fw_progress)
@@ -477,21 +696,21 @@ def _create_leaf_directories_for_file(self, file_path: str) -> None:
             raise
         finally:
             self._remove_directory_contents_recursively(
-                self.temp_firmware_download_folder, keep_files=[], keep_folders=[])
+                self.new_version_dir, keep_files=[], keep_folders=[])
 
 
 def get_misc_settings() -> dict:
     settings = {
-        "wifi_ssid": os.getenv("WIFI_SSID"),
-        "wifi_password": os.getenv("WIFI_PASSWORD"),
+        "wifi_ssid": os.getenv("WIFI_SSID", "Missing_WIFI_SSID"),
+        "wifi_password": os.getenv("WIFI_PASSWORD", "Missing_WIFI_PASSWORD"),
         
             # get  GETHUB repo/access from settings.toml
-        "repo_name":  os.getenv("GETHUB_REPO_NAME"),
-        "repo_owner": os.getenv("GETHUB_REPO_OWNER"),
-        "repo_access_token": os.getenv("GETHUB_ACCESS_TOKEN")  ,  # or None by default
+        "repo_name":  os.getenv("GETHUB_REPO_NAME", "Missing_repo_name"),
+        "repo_owner": os.getenv("GETHUB_REPO_OWNER", "Missing_repo_owner"),
+        "repo_access_token": os.getenv("GETHUB_ACCESS_TOKEN", None)  ,  
         
-        "cloud_username":    os.getenv("AIO_USERNAME"),
-        "cloud_access_key":  os.getenv("AIO_KEY"),
+        "cloud_username":    os.getenv("AIO_USERNAME", None),
+        "cloud_access_key":  os.getenv("AIO_KEY", None),
         
         # "thingsboard_url": os.getenv("THINGSBOARD_URL"),
         # "thingsboard_port": os.getenv("THINGSBOARD_PORT"),
